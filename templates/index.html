@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css">
+</head>
+
+<style>
+
+    .modal-content{
+        padding: 30px;
+        background-color: #fff;
+        border-radius: 5px;
+    }
+
+    .recettes{
+        margin-top: 50px;
+    }
+
+    .delete.edit::before{
+        height: 0;
+        width: 0;
+    }
+    .notification{
+        margin-top: 20px;
+    }
+
+
+</style>
+
+<body>
+
+<div id="app">
+<section class="section">
+
+    <div class="container">
+        <h1 class="title is-1">Exo recettes</h1>
+
+        <a @click="showModalAdd" class="button">Ajouter une recette</a>
+
+        <div class="modal modalAdd">
+
+            <div class="modal-background"></div>
+            <div class="modal-content">
+                <h3 class="title is-4">Ajouter une recette</h3>
+                <form>
+                    <div class="field">
+                        <label class="label">Nom</label>
+                        <div class="control">
+                            <input class="input" type="text" placeholder="Nom" v-model="nom">
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Description</label>
+                        <div class="control">
+                            <textarea class="textarea" placeholder="Description" v-model="description"></textarea>
+                        </div>
+                    </div>
+
+
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <button type="submit" v-on:click.prevent="addItem" class="button is-link">Ajouter</button>
+                        </div>
+                    </div>
+                </form>
+
+                <div v-if="error" class="notification is-danger">
+                    <button class="delete" @click="error = false"></button>
+                    Oups ! Tous les champs ne sont pas bien remplis
+                </div>
+
+
+            </div>
+
+            <button @click="closeModalAdd" class="modal-close is-large" aria-label="close"></button>
+        </div>
+
+
+        <div class="modal modalEdit">
+
+            <div class="modal-background"></div>
+            <div class="modal-content">
+                <h3 class="title is-4">Modifier la recette</h3>
+                <form>
+                    <div class="field">
+                        <label class="label">Nom</label>
+                        <div class="control">
+                            <input class="input" type="text" placeholder="Nom" v-model="editName">
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Description</label>
+                        <div class="control">
+                            <textarea class="textarea" placeholder="Description" v-model="editDescription"></textarea>
+                        </div>
+                    </div>
+
+
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <button type="submit" v-on:click.prevent="updateRecipe()" class="button is-link">Modifier</button>
+                        </div>
+                    </div>
+                </form>
+
+                <div v-if="error" class="notification is-danger">
+                    <button class="delete" @click="error = false"></button>
+                    Oups ! Tous les champs ne sont pas bien remplis
+                </div>
+
+            </div>
+
+            <button @click="closeModalEdit" class="modal-close is-large" aria-label="close"></button>
+        </div>
+
+    </div>
+
+    <div class="container recettes">
+
+        <p v-if="items.length == 0">Il n'y a pas de recette à afficher :(</p>
+
+        <div v-for="item in items" class="message is-info">
+            <div class="message-header">
+                <p>{{ item.name }}</p>
+                <div>
+                    <button class="delete edit" @click="showModalEdit(item.id)"></button>
+                    <button class="delete" @click.prevent="removeItem(item.id)"></button>
+                </div>
+
+
+            </div>
+            <div class="message-body">
+                <p>{{ item.description }}</p>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script>
+
+        axios.defaults.baseURL = 'http://localhost:8080';
+        axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded';
+
+        var app = new Vue({
+            el: '#app',
+            data: {
+                nom: "",
+                id: "",
+                description: "",
+                items: "",
+                editName:"",
+                editDescription:"",
+                itemId :"",
+                error : false,
+
+
+            },
+
+            methods: {
+                showModalAdd() {
+                    var modal = document.querySelector('.modalAdd');
+                    modal.classList.add('is-active')
+                },
+                closeModalAdd() {
+                    var modal = document.querySelector('.modalAdd');
+                    modal.classList.remove('is-active')
+                    app.error = false
+                },
+                showModalEdit(id) {
+                    this.itemId = id;
+                    var modal = document.querySelector('.modalEdit');
+                    modal.classList.add('is-active')
+                },
+                closeModalEdit() {
+                    var modal = document.querySelector('.modalEdit');
+                    modal.classList.remove('is-active')
+                    app.error = false
+                },
+                addItem() {
+                    var name = this.nom;
+                    var des = this.description;
+
+                    if(name == "" && des == ""){
+                        app.error = true;
+
+                    } else {
+                        axios.post('/recipe', {
+                            name: name,
+                            description: des,
+                        })
+                            .then(function (response) {
+                                console.log(response);
+                            })
+                            .catch(function (error) {
+                                console.log(error);
+                            });
+
+                        axios.get('/recipe')
+                            .then(function (response) {
+                                app.items = response.data;
+
+                                app.nom = "";
+                                app.description = "";
+
+                                var modal = document.querySelector('.modalAdd')
+                                modal.classList.remove('is-active')
+
+                                console.log(app.items)
+
+                            })
+                            .catch(function (error) {
+                                console.log(error);
+                            });
+                    }
+
+
+                },
+                removeItem(id) {
+
+                    axios.delete('/recipe/' + id)
+                        .then(response => {
+                            axios.get('/recipe')
+                                .then(function (response) {
+                                    app.items = response.data;
+                                    console.log(app.items)
+                                })
+                                .catch(function (error) {
+                                    console.log(error);
+                                });
+                        })
+                        .catch(error => {
+                            console.log(error)
+                        })
+
+                },
+                updateRecipe() {
+
+                    var id = app.itemId;
+
+                    if (app.editName == "" && app.editDescription == "") {
+                        app.error = true;
+
+                    } else {
+
+                        axios.put('/recipe/' + id, {
+                            name: app.editName,
+                            description: app.editDescription,
+                        })
+                            .then(response => {
+                                console.log(response);
+                                axios.get('/recipe')
+                                    .then(function (response) {
+                                        app.items = response.data;
+                                        console.log(app.items)
+
+                                        app.editDescription = ""
+                                        app.editName = ""
+
+                                        var modal = document.querySelector('.modalEdit')
+                                        modal.classList.remove('is-active')
+                                    })
+                                    .catch(function (error) {
+                                        console.log(error);
+                                    });
+                            })
+                            .catch(error => {
+                                console.log(error)
+                            })
+
+                    }
+                }
+
+            },
+
+            mounted: function () {
+                axios.get('/recipe')
+                    .then(function (response) {
+                        app.items = response.data;
+                        console.log(app.items)
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    });
+            }
+        });
+    </script>
+</body>
+</html>
